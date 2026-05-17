@@ -64,7 +64,7 @@ def fetch_movies(genre_id, min_rating, min_year):
 st.set_page_config(page_title="Zufallsfilm", page_icon="🍿")
 
 st.title("🎬 Filmabend: Timm & Dani")
-st.write("Der automatische Zufallsgenerator, damit der *Humor Fuchs* und du nicht mehr ewig suchen müsst!")
+st.write("DFür mein Bebi <3")
 st.divider()
 
 col_settings, col_result = st.columns([1, 2])
