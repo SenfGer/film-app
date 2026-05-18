@@ -70,8 +70,8 @@ def fetch_movies(genre_ids, min_rating, min_year, max_year, exclude_genre_ids=""
         return response.json().get("results", [])
     return []
 
-# ANGEPASST: Spezielle Abfrage für den Katalog (Nach Bewertung sortiert)
-def fetch_catalog_movies(genre_id):
+# ANGEPASST: Fetch-Funktion für den Katalog nimmt jetzt auch Jahre an
+def fetch_catalog_movies(genre_id, min_year, max_year):
     url = "https://api.themoviedb.org/3/discover/movie"
     movies = []
     for page in range(1, 3):
@@ -81,9 +81,11 @@ def fetch_catalog_movies(genre_id):
             "with_watch_providers": "9", 
             "with_watch_monetization_types": "flatrate",
             "watch_region": "DE",
-            "sort_by": "vote_average.desc", # <-- GEÄNDERT: Nach Bewertung absteigend
+            "sort_by": "vote_average.desc", 
+            "primary_release_date.gte": f"{min_year}-01-01", # <-- NEU: Startjahr
+            "primary_release_date.lte": f"{max_year}-12-31", # <-- NEU: Endjahr
             "page": page,
-            "vote_count.gte": 150 # <-- GEÄNDERT: Mindestens 150 Stimmen für echte Top-Filme
+            "vote_count.gte": 150 
         }
         if genre_id:
             params["with_genres"] = genre_id
@@ -252,15 +254,20 @@ with tab_direct:
 # --- TAB 3: KATALOG ---
 with tab_catalog:
     st.subheader("📚 Der Prime-Katalog")
-    # ANGEPASST: Der Infotext spiegelt nun die neue Sortierung wider
     st.write("Stöbert durch die Top 40 der am besten bewerteten Prime-Filme einer Kategorie.") 
     
     catalog_genre_name = st.selectbox("Kategorie auswählen:", [g for g in GENRES.keys() if g != "Egal / Alles"])
     catalog_genre_id = GENRES[catalog_genre_name]
     
+    # NEU: Der Jahres-Schieberegler für den Katalog
+    catalog_year_range = st.slider("Filme ab welchem Jahr?", min_value=1950, max_value=2026, value=(2010, 2026), step=1, key="cat_year_slider")
+    cat_min_year = catalog_year_range[0]
+    cat_max_year = catalog_year_range[1]
+    
+    # ANGEPASST: Der Button übergibt jetzt auch die Jahre an die Suchfunktion
     if st.button(f"Bestbewertete '{catalog_genre_name}' Filme laden", use_container_width=True):
         with st.spinner("Lade die Blockbuster..."):
-            cat_movies = fetch_catalog_movies(catalog_genre_id)
+            cat_movies = fetch_catalog_movies(catalog_genre_id, cat_min_year, cat_max_year)
             
             if cat_movies:
                 cols = st.columns(4)
@@ -272,7 +279,7 @@ with tab_catalog:
                         st.caption(f"⭐ {cm.get('vote_average', '-')}/10 | Jahr: {cm.get('release_date', '-')[:4]}")
                         st.divider() 
             else:
-                st.warning("Keine Filme in dieser Kategorie gefunden.")
+                st.warning("Keine Filme in diesem Zeitraum gefunden.")
 
 # --- TAB 4: BLACKLIST VERWALTUNG ---
 with tab_blacklist:
