@@ -130,11 +130,10 @@ def search_and_check_prime(query):
         
     return best_match, on_prime
 
-# ANGEPASST: Prime Link Funktion
+# ROLLE RÜCKWÄRTS: Wieder der funktionierende Shopping-App-Link
 def get_prime_link(title):
     encoded_title = urllib.parse.quote_plus(title)
-    # Nutzt ab jetzt die reine Video-Domain, um die Einkaufs-App auf dem Handy zu umgehen!
-    return f"https://www.primevideo.com/search/?phrase={encoded_title}"
+    return f"https://www.amazon.de/s?k={encoded_title}&i=instant-video"
 
 # --- BENUTZEROBERFLÄCHE ---
 st.set_page_config(page_title="Zufallsfilm", page_icon="🍿")
@@ -218,7 +217,7 @@ with tab_search:
                 st.image(poster_url, width=250)
             
             prime_link = get_prime_link(movie.get('title', ''))
-            st.markdown(f"### [▶️ In der Prime-App suchen]({prime_link})")
+            st.markdown(f"### [▶️ In der Amazon-App öffnen]({prime_link})")
             
             st.write(f"**Bewertung:** ⭐ {movie.get('vote_average', '-')}/10")
             st.write(f"**Erscheinungsdatum:** {movie.get('release_date', '-')}")
@@ -252,7 +251,7 @@ with tab_direct:
                         if on_prime:
                             st.success("✅ Juhu! Dieser Film ist aktuell im Prime-Abo enthalten!")
                             prime_link = get_prime_link(found_movie.get('title', ''))
-                            st.markdown(f"**[▶️ Direkt in der Prime-App suchen]({prime_link})**")
+                            st.markdown(f"**[▶️ In der Amazon-App öffnen]({prime_link})**")
                         else:
                             st.error("❌ Leider aktuell NICHT kostenlos im Prime-Abo verfügbar.")
                         st.write(f"**Erscheinungsdatum:** {found_movie.get('release_date', '-')[:4]}")
@@ -287,7 +286,7 @@ with tab_catalog:
                         st.write(f"**{cm.get('title')}**")
                         
                         prime_link = get_prime_link(cm.get('title', ''))
-                        st.markdown(f"**[▶️ Bei Prime suchen]({prime_link})**")
+                        st.markdown(f"**[▶️ In der Amazon-App öffnen]({prime_link})**")
                         
                         st.caption(f"⭐ {cm.get('vote_average', '-')}/10 | Jahr: {cm.get('release_date', '-')[:4]}")
                         st.divider() 
