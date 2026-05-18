@@ -82,7 +82,7 @@ def get_movie_details(movie_id):
 st.set_page_config(page_title="Zufallsfilm", page_icon="🍿")
 
 st.title("🎬 Filmabend: Timm & Dani")
-st.write("Für mein Bebi <3")
+st.write("Für mein Bebi <3") # <-- Text angepasst
 st.divider()
 
 tab_search, tab_blacklist = st.tabs(["🎲 Filmauswahl", "🚫 Blacklist verwalten"])
@@ -94,26 +94,41 @@ with tab_search:
     with col_settings:
         st.subheader("Eure Filter")
         
-        # NEU: Touch-freundliche Checkboxen für gesuchte Genres (im Ausklapp-Menü)
+        # Gesuchte Kategorien
         selected_genre_names = []
         with st.expander("✅ Gesuchte Kategorie(n) wählen"):
             for genre in [g for g in GENRES.keys() if g != "Egal / Alles"]:
                 if st.checkbox(genre, key=f"include_{genre}"):
                     selected_genre_names.append(genre)
+        
+        # NEU: Anzeige der Auswahl unter dem Ausklapp-Menü
+        if selected_genre_names:
+            st.caption(f"📌 **Gesucht:** {', '.join(selected_genre_names)}")
+        else:
+            st.caption("📌 **Gesucht:** Egal / Alles")
+            
         selected_genre_ids = ",".join([GENRES[name] for name in selected_genre_names])
         
-        # NEU: Touch-freundliche Checkboxen für Ausschlüsse (im Ausklapp-Menü)
+        st.write("") # Kleiner Platzhalter
+        
+        # Ausgeschlossene Kategorien
         exclude_genre_names = []
         with st.expander("❌ Diese Kategorien ausschließen"):
             for genre in [g for g in GENRES.keys() if g != "Egal / Alles"]:
                 if st.checkbox(genre, key=f"exclude_{genre}"):
                     exclude_genre_names.append(genre)
+                    
+        # NEU: Anzeige der Auswahl unter dem Ausklapp-Menü
+        if exclude_genre_names:
+            st.caption(f"🚫 **Ausgeschlossen:** {', '.join(exclude_genre_names)}")
+        else:
+            st.caption("🚫 **Ausgeschlossen:** Nichts")
+            
         exclude_genre_ids = "|".join([GENRES[name] for name in exclude_genre_names])
         
         st.divider()
         
         min_rating = st.slider("Mindestbewertung (1-10):", min_value=1.0, max_value=9.0, value=6.0, step=0.5)
-        # NEU: Das Jahr ist jetzt auch ein Schieberegler (verhindert das Öffnen der Nummern-Tastatur)
         min_year = st.slider("Erscheinungsjahr ab:", min_value=1950, max_value=2026, value=2010, step=1)
         
         st.divider()
