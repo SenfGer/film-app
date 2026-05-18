@@ -70,11 +70,10 @@ def fetch_movies(genre_ids, min_rating, min_year, max_year, exclude_genre_ids=""
         return response.json().get("results", [])
     return []
 
-# NEU: Spezielle Abfrage für den Katalog (Top 40 Filme pro Genre)
+# ANGEPASST: Spezielle Abfrage für den Katalog (Nach Bewertung sortiert)
 def fetch_catalog_movies(genre_id):
     url = "https://api.themoviedb.org/3/discover/movie"
     movies = []
-    # Wir rufen 2 Seiten ab (jeweils 20 Filme) = 40 Filme
     for page in range(1, 3):
         params = {
             "api_key": TMDB_API_KEY,
@@ -82,9 +81,9 @@ def fetch_catalog_movies(genre_id):
             "with_watch_providers": "9", 
             "with_watch_monetization_types": "flatrate",
             "watch_region": "DE",
-            "sort_by": "popularity.desc", # Sortiert nach Beliebtheit
+            "sort_by": "vote_average.desc", # <-- GEÄNDERT: Nach Bewertung absteigend
             "page": page,
-            "vote_count.gte": 50
+            "vote_count.gte": 150 # <-- GEÄNDERT: Mindestens 150 Stimmen für echte Top-Filme
         }
         if genre_id:
             params["with_genres"] = genre_id
@@ -136,7 +135,6 @@ st.title("🎬 Filmabend: Timm & Dani")
 st.write("Für mein Bebi <3") 
 st.divider()
 
-# NEU: Vier Tabs!
 tab_search, tab_direct, tab_catalog, tab_blacklist = st.tabs(["🎲 Zufallsfilm", "🔍 Direktsuche", "📚 Katalog", "🚫 Blacklist"])
 
 # --- TAB 1: FILMAUSWAHL ---
@@ -251,20 +249,20 @@ with tab_direct:
         else:
             st.info("Bitte tippe zuerst einen Filmnamen ein.")
 
-# --- TAB 3: NEU - KATALOG ---
+# --- TAB 3: KATALOG ---
 with tab_catalog:
     st.subheader("📚 Der Prime-Katalog")
-    st.write("Stöbert durch die Top 40 der aktuell beliebtesten Prime-Filme einer Kategorie.")
+    # ANGEPASST: Der Infotext spiegelt nun die neue Sortierung wider
+    st.write("Stöbert durch die Top 40 der am besten bewerteten Prime-Filme einer Kategorie.") 
     
     catalog_genre_name = st.selectbox("Kategorie auswählen:", [g for g in GENRES.keys() if g != "Egal / Alles"])
     catalog_genre_id = GENRES[catalog_genre_name]
     
-    if st.button(f"Beliebteste '{catalog_genre_name}' Filme laden", use_container_width=True):
+    if st.button(f"Bestbewertete '{catalog_genre_name}' Filme laden", use_container_width=True):
         with st.spinner("Lade die Blockbuster..."):
             cat_movies = fetch_catalog_movies(catalog_genre_id)
             
             if cat_movies:
-                # Wir bauen ein Raster mit 4 Spalten auf dem Desktop (auf dem Handy bricht es automatisch sauber um)
                 cols = st.columns(4)
                 for idx, cm in enumerate(cat_movies):
                     with cols[idx % 4]:
@@ -272,7 +270,7 @@ with tab_catalog:
                             st.image(f"https://image.tmdb.org/t/p/w300{cm['poster_path']}", use_container_width=True)
                         st.write(f"**{cm.get('title')}**")
                         st.caption(f"⭐ {cm.get('vote_average', '-')}/10 | Jahr: {cm.get('release_date', '-')[:4]}")
-                        st.divider() # Kleiner Trennstrich zwischen den Zeilen
+                        st.divider() 
             else:
                 st.warning("Keine Filme in dieser Kategorie gefunden.")
 
