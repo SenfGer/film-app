@@ -71,8 +71,7 @@ def fetch_movies(genre_ids, min_rating, min_year, max_year, exclude_genre_ids=""
         return response.json().get("results", [])
     return []
 
-# ANGEPASST: Unterstützt jetzt auch das Ausschließen von Genres im Katalog
-def fetch_catalog_movies(genre_id, min_year, max_year, exclude_genre_ids=""):
+def fetch_catalog_movies(genre_ids, min_year, max_year, exclude_genre_ids=""):
     url = "https://api.themoviedb.org/3/discover/movie"
     movies = []
     for page in range(1, 3):
@@ -88,8 +87,8 @@ def fetch_catalog_movies(genre_id, min_year, max_year, exclude_genre_ids=""):
             "page": page,
             "vote_count.gte": 150 
         }
-        if genre_id:
-            params["with_genres"] = genre_id
+        if genre_ids:
+            params["with_genres"] = genre_ids
         if exclude_genre_ids:
             params["without_genres"] = exclude_genre_ids
             
@@ -140,7 +139,7 @@ def get_prime_link(title):
 # --- BENUTZEROBERFLÄCHE ---
 st.set_page_config(page_title="Zufallsfilm", page_icon="🍿")
 
-st.title("🎬 Filmabend")
+st.title("🎬 Filmabend: Timm & Dani")
 st.write("Für mein Bebi <3") 
 st.divider()
 
@@ -255,7 +254,6 @@ with tab_direct:
                         else:
                             st.error("❌ Leider aktuell NICHT kostenlos im Prime-Abo verfügbar.")
                         
-                        # ANGEPASST: Der Link steht jetzt hier unten, damit er IMMER (auch bei Kaufoption) da ist!
                         prime_link = get_prime_link(found_movie.get('title', ''))
                         st.markdown(f"**[▶️ In der Amazon-App öffnen / Kaufoption prüfen]({prime_link})**")
                             
@@ -269,12 +267,24 @@ with tab_direct:
 # --- TAB 3: KATALOG ---
 with tab_catalog:
     st.subheader("📚 Der Prime-Katalog")
-    st.write("Stöbert durch die Top 40 der am besten bewerteten Prime-Filme einer Kategorie.") 
+    st.write("Stöbert durch die Top 40 der am besten bewerteten Prime-Filme eurer Auswahl.") 
     
-    catalog_genre_name = st.selectbox("Kategorie auswählen:", [g for g in GENRES.keys() if g != "Egal / Alles"])
-    catalog_genre_id = GENRES[catalog_genre_name]
+    # NEU: Mehrfachauswahl für Gesuchte Kategorien im Katalog (wie auf Tab 1)
+    catalog_genre_names = []
+    with st.expander("✅ Gesuchte Kategorie(n) wählen"):
+        for genre in [g for g in GENRES.keys() if g != "Egal / Alles"]:
+            if st.checkbox(genre, key=f"cat_include_{genre}"):
+                catalog_genre_names.append(genre)
+                
+    if catalog_genre_names:
+        st.caption(f"📌 **Gesucht:** {', '.join(catalog_genre_names)}")
+    else:
+        st.caption("📌 **Gesucht:** Egal / Alles")
+        
+    catalog_genre_ids = ",".join([GENRES[name] for name in catalog_genre_names])
     
-    # NEU: Das Auswahlfenster für Ausschlüsse jetzt auch im Katalog!
+    st.write("")
+    
     exclude_genre_names_cat = []
     with st.expander("❌ Diese Kategorien im Katalog ausschließen"):
         for genre in [g for g in GENRES.keys() if g != "Egal / Alles"]:
@@ -294,10 +304,10 @@ with tab_catalog:
     cat_min_year = catalog_year_range[0]
     cat_max_year = catalog_year_range[1]
     
-    # ANGEPASST: Übergibt jetzt auch die Ausschlüsse an die Funktion
-    if st.button(f"Bestbewertete '{catalog_genre_name}' Filme laden", use_container_width=True):
+    # ANGEPASST: Button-Text allgemeiner gehalten und neue Variable übergeben
+    if st.button("Bestbewertete Filme laden", use_container_width=True):
         with st.spinner("Lade die Blockbuster..."):
-            cat_movies = fetch_catalog_movies(catalog_genre_id, cat_min_year, cat_max_year, exclude_genre_ids_cat)
+            cat_movies = fetch_catalog_movies(catalog_genre_ids, cat_min_year, cat_max_year, exclude_genre_ids_cat)
             
             if cat_movies:
                 cols = st.columns(4)
