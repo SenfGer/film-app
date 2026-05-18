@@ -183,7 +183,7 @@ with tab_search:
         st.divider()
         
         min_rating = st.slider("Mindestbewertung (1-10):", min_value=1.0, max_value=9.0, value=6.0, step=0.5)
-        year_range = st.slider("Erscheinungsjahr:", min_value=1950, max_value=2026, value=(2010, 2026), step=1)
+        year_range = st.slider("Erscheinungsjahr:", min_value=1950, max_value=2026, value=(2000, 2026), step=1)
         min_year = year_range[0]
         max_year = year_range[1]
         
@@ -300,7 +300,7 @@ with tab_catalog:
     
     st.write("")
     
-    catalog_year_range = st.slider("Filme ab welchem Jahr?", min_value=1950, max_value=2026, value=(2010, 2026), step=1, key="cat_year_slider")
+    catalog_year_range = st.slider("Filme ab welchem Jahr?", min_value=1950, max_value=2026, value=(2000, 2026), step=1, key="cat_year_slider")
     cat_min_year = catalog_year_range[0]
     cat_max_year = catalog_year_range[1]
     
