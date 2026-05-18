@@ -94,24 +94,27 @@ with tab_search:
     with col_settings:
         st.subheader("Eure Filter")
         
-        # NEU: Mehrfachauswahl für Gesuchte Kategorien (UND Logik durch Komma)
-        selected_genre_names = st.multiselect(
-            "Gesuchte Kategorie(n) - müssen alle zutreffen:", 
-            [g for g in GENRES.keys() if g != "Egal / Alles"]
-        )
+        # NEU: Touch-freundliche Checkboxen für gesuchte Genres (im Ausklapp-Menü)
+        selected_genre_names = []
+        with st.expander("✅ Gesuchte Kategorie(n) wählen"):
+            for genre in [g for g in GENRES.keys() if g != "Egal / Alles"]:
+                if st.checkbox(genre, key=f"include_{genre}"):
+                    selected_genre_names.append(genre)
         selected_genre_ids = ",".join([GENRES[name] for name in selected_genre_names])
         
-        # ANGEPASST: Mehrfachauswahl für Ausschlüsse (ODER Logik durch Pipe-Symbol)
-        exclude_genre_names = st.multiselect(
-            "Diese Kategorien ausschließen:", 
-            [g for g in GENRES.keys() if g != "Egal / Alles"]
-        )
+        # NEU: Touch-freundliche Checkboxen für Ausschlüsse (im Ausklapp-Menü)
+        exclude_genre_names = []
+        with st.expander("❌ Diese Kategorien ausschließen"):
+            for genre in [g for g in GENRES.keys() if g != "Egal / Alles"]:
+                if st.checkbox(genre, key=f"exclude_{genre}"):
+                    exclude_genre_names.append(genre)
         exclude_genre_ids = "|".join([GENRES[name] for name in exclude_genre_names])
         
         st.divider()
         
         min_rating = st.slider("Mindestbewertung (1-10):", min_value=1.0, max_value=9.0, value=6.0, step=0.5)
-        min_year = st.number_input("Erscheinungsjahr ab:", min_value=1950, max_value=2026, value=2010, step=1)
+        # NEU: Das Jahr ist jetzt auch ein Schieberegler (verhindert das Öffnen der Nummern-Tastatur)
+        min_year = st.slider("Erscheinungsjahr ab:", min_value=1950, max_value=2026, value=2010, step=1)
         
         st.divider()
         search_button = st.button("🎲 Zufallsfilm finden", use_container_width=True)
