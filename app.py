@@ -139,7 +139,7 @@ def get_prime_link(title):
 # --- BENUTZEROBERFLÄCHE ---
 st.set_page_config(page_title="Zufallsfilm", page_icon="🍿")
 
-st.title("🎬 Filmabend: Timm & Dani")
+st.title("🎬 Filmabend")
 st.write("Für mein Bebi <3") 
 st.divider()
 
