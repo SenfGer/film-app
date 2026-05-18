@@ -57,12 +57,11 @@ def fetch_movies(genre_ids, min_rating, min_year, max_year, exclude_genre_ids=""
         "watch_region": "DE",
         "vote_average.gte": min_rating,
         "primary_release_date.gte": f"{min_year}-01-01",
-        "primary_release_date.lte": f"{max_year}-12-31", # NEU: Endjahr hinzugefügt
+        "primary_release_date.lte": f"{max_year}-12-31",
         "vote_count.gte": 50,
     }
     if genre_ids:
         params["with_genres"] = genre_ids
-    
     if exclude_genre_ids:
         params["without_genres"] = exclude_genre_ids
         
@@ -70,6 +69,30 @@ def fetch_movies(genre_ids, min_rating, min_year, max_year, exclude_genre_ids=""
     if response.status_code == 200:
         return response.json().get("results", [])
     return []
+
+# NEU: Spezielle Abfrage für den Katalog (Top 40 Filme pro Genre)
+def fetch_catalog_movies(genre_id):
+    url = "https://api.themoviedb.org/3/discover/movie"
+    movies = []
+    # Wir rufen 2 Seiten ab (jeweils 20 Filme) = 40 Filme
+    for page in range(1, 3):
+        params = {
+            "api_key": TMDB_API_KEY,
+            "language": "de-DE",
+            "with_watch_providers": "9", 
+            "with_watch_monetization_types": "flatrate",
+            "watch_region": "DE",
+            "sort_by": "popularity.desc", # Sortiert nach Beliebtheit
+            "page": page,
+            "vote_count.gte": 50
+        }
+        if genre_id:
+            params["with_genres"] = genre_id
+            
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            movies.extend(response.json().get("results", []))
+    return movies
 
 def get_movie_details(movie_id):
     url = f"https://api.themoviedb.org/3/movie/{movie_id}"
@@ -79,9 +102,7 @@ def get_movie_details(movie_id):
         return response.json()
     return None
 
-# NEU: Funktion für die direkte Filmsuche und Prime-Check
 def search_and_check_prime(query):
-    # Schritt 1: Film anhand des Titels suchen
     search_url = "https://api.themoviedb.org/3/search/movie"
     params_search = {"api_key": TMDB_API_KEY, "language": "de-DE", "query": query}
     response = requests.get(search_url, params=params_search)
@@ -93,11 +114,9 @@ def search_and_check_prime(query):
     if not results:
         return None, False
         
-    # Besten Treffer nehmen
     best_match = results[0]
     movie_id = best_match['id']
     
-    # Schritt 2: Lizenzen prüfen
     prov_url = f"https://api.themoviedb.org/3/movie/{movie_id}/watch/providers"
     prov_response = requests.get(prov_url, params={"api_key": TMDB_API_KEY})
     
@@ -106,8 +125,6 @@ def search_and_check_prime(query):
         providers_data = prov_response.json().get("results", {})
         de_providers = providers_data.get("DE", {})
         flatrate = de_providers.get("flatrate", [])
-        
-        # Prime ID ist in DE meist 9 oder 119
         on_prime = any(str(p['provider_id']) in ["9", "119"] for p in flatrate)
         
     return best_match, on_prime
@@ -119,8 +136,8 @@ st.title("🎬 Filmabend: Timm & Dani")
 st.write("Für mein Bebi <3") 
 st.divider()
 
-# NEU: Dritter Tab für die Direktsuche
-tab_search, tab_direct, tab_blacklist = st.tabs(["🎲 Zufallsfilm", "🔍 Direktsuche", "🚫 Blacklist"])
+# NEU: Vier Tabs!
+tab_search, tab_direct, tab_catalog, tab_blacklist = st.tabs(["🎲 Zufallsfilm", "🔍 Direktsuche", "📚 Katalog", "🚫 Blacklist"])
 
 # --- TAB 1: FILMAUSWAHL ---
 with tab_search:
@@ -129,7 +146,6 @@ with tab_search:
     with col_settings:
         st.subheader("Eure Filter")
         
-        # Gesuchte Kategorien
         selected_genre_names = []
         with st.expander("✅ Gesuchte Kategorie(n) wählen"):
             for genre in [g for g in GENRES.keys() if g != "Egal / Alles"]:
@@ -145,7 +161,6 @@ with tab_search:
         
         st.write("") 
         
-        # Ausgeschlossene Kategorien
         exclude_genre_names = []
         with st.expander("❌ Diese Kategorien ausschließen"):
             for genre in [g for g in GENRES.keys() if g != "Egal / Alles"]:
@@ -162,8 +177,6 @@ with tab_search:
         st.divider()
         
         min_rating = st.slider("Mindestbewertung (1-10):", min_value=1.0, max_value=9.0, value=6.0, step=0.5)
-        
-        # NEU: Das Jahr ist jetzt ein Bereichs-Regler (Zwei Werte)
         year_range = st.slider("Erscheinungsjahr:", min_value=1950, max_value=2026, value=(2010, 2026), step=1)
         min_year = year_range[0]
         max_year = year_range[1]
@@ -210,7 +223,7 @@ with tab_search:
                 del st.session_state['current_movie']
                 st.rerun()
 
-# --- TAB 2: NEU - DIREKTSUCHE ---
+# --- TAB 2: DIREKTSUCHE ---
 with tab_direct:
     st.subheader("🔍 Läuft der Film auf Prime?")
     search_query = st.text_input("Filmtitel eingeben:")
@@ -222,20 +235,15 @@ with tab_direct:
                 
                 if found_movie:
                     col_img, col_info = st.columns([1, 2])
-                    
                     with col_img:
                         if found_movie.get('poster_path'):
                             st.image(f"https://image.tmdb.org/t/p/w500{found_movie['poster_path']}", width=200)
-                            
                     with col_info:
                         st.subheader(found_movie.get('title', 'Unbekannter Titel'))
-                        
-                        # Fettes Hinweisschild, ob er bei Prime dabei ist
                         if on_prime:
                             st.success("✅ Juhu! Dieser Film ist aktuell im Prime-Abo enthalten!")
                         else:
                             st.error("❌ Leider aktuell NICHT kostenlos im Prime-Abo verfügbar.")
-                            
                         st.write(f"**Erscheinungsdatum:** {found_movie.get('release_date', '-')[:4]}")
                         st.write(f"**Beschreibung:** {found_movie.get('overview', 'Keine Beschreibung verfügbar.')}")
                 else:
@@ -243,7 +251,32 @@ with tab_direct:
         else:
             st.info("Bitte tippe zuerst einen Filmnamen ein.")
 
-# --- TAB 3: BLACKLIST VERWALTUNG ---
+# --- TAB 3: NEU - KATALOG ---
+with tab_catalog:
+    st.subheader("📚 Der Prime-Katalog")
+    st.write("Stöbert durch die Top 40 der aktuell beliebtesten Prime-Filme einer Kategorie.")
+    
+    catalog_genre_name = st.selectbox("Kategorie auswählen:", [g for g in GENRES.keys() if g != "Egal / Alles"])
+    catalog_genre_id = GENRES[catalog_genre_name]
+    
+    if st.button(f"Beliebteste '{catalog_genre_name}' Filme laden", use_container_width=True):
+        with st.spinner("Lade die Blockbuster..."):
+            cat_movies = fetch_catalog_movies(catalog_genre_id)
+            
+            if cat_movies:
+                # Wir bauen ein Raster mit 4 Spalten auf dem Desktop (auf dem Handy bricht es automatisch sauber um)
+                cols = st.columns(4)
+                for idx, cm in enumerate(cat_movies):
+                    with cols[idx % 4]:
+                        if cm.get('poster_path'):
+                            st.image(f"https://image.tmdb.org/t/p/w300{cm['poster_path']}", use_container_width=True)
+                        st.write(f"**{cm.get('title')}**")
+                        st.caption(f"⭐ {cm.get('vote_average', '-')}/10 | Jahr: {cm.get('release_date', '-')[:4]}")
+                        st.divider() # Kleiner Trennstrich zwischen den Zeilen
+            else:
+                st.warning("Keine Filme in dieser Kategorie gefunden.")
+
+# --- TAB 4: BLACKLIST VERWALTUNG ---
 with tab_blacklist:
     st.subheader("Ausgeschlossene Filme")
     st.write("Diese Filme werden euch bei der Zufallssuche nicht mehr vorgeschlagen.")
