@@ -92,22 +92,30 @@ with col_result:
             else:
                 st.session_state['current_movie'] = random.choice(available_movies)
 
-    if 'current_movie' in st.session_state:
-        movie = st.session_state['current_movie']
-        
-        st.subheader(movie.get('title', 'Unbekannter Titel'))
-        
-        if movie.get('poster_path'):
-            poster_url = f"https://image.tmdb.org/t/p/w500{movie['poster_path']}"
-            st.image(poster_url, width=250)
+if 'current_movie' in st.session_state:
+            movie = st.session_state['current_movie']
             
-        st.write(f"**Bewertung:** ⭐ {movie.get('vote_average', '-')}/10")
-        st.write(f"**Erscheinungsdatum:** {movie.get('release_date', '-')}")
-        st.write(f"**Beschreibung:** {movie.get('overview', 'Keine Beschreibung verfügbar.')}")
-        
-        if st.button("🚫 Diesen Film für immer ausschließen"):
-            with st.spinner('Speichere in der Cloud-Blacklist...'):
-                add_to_blacklist(movie['id'])
-            st.success("Erledigt! Der Film steht auf der Blacklist.")
-            del st.session_state['current_movie']
-            st.rerun()
+            # --- NEU: Wir holen uns die vollen Details des Films ---
+            full_details = get_movie_details(movie['id'])
+            genre_text = "Keine Angaben"
+            if full_details and 'genres' in full_details:
+                # Zieht alle Genre-Namen aus den Details und verbindet sie mit Kommas
+                genre_text = ", ".join([g['name'] for g in full_details['genres']])
+            
+            st.subheader(movie.get('title', 'Unbekannter Titel'))
+            
+            if movie.get('poster_path'):
+                poster_url = f"https://image.tmdb.org/t/p/w500{movie['poster_path']}"
+                st.image(poster_url, width=250)
+                
+            st.write(f"**Bewertung:** ⭐ {movie.get('vote_average', '-')}/10")
+            st.write(f"**Erscheinungsdatum:** {movie.get('release_date', '-')}")
+            st.write(f"**Genres:** {genre_text}") # <-- NEUE ZEILE
+            st.write(f"**Beschreibung:** {movie.get('overview', 'Keine Beschreibung verfügbar.')}")
+            
+            if st.button("🚫 Diesen Film für immer ausschließen"):
+                with st.spinner('Speichere in der Cloud...'):
+                    add_to_blacklist(movie['id'])
+                st.success("Erledigt! Der Film steht auf der Blacklist.")
+                del st.session_state['current_movie']
+                st.rerun()
