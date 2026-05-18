@@ -130,10 +130,11 @@ def search_and_check_prime(query):
         
     return best_match, on_prime
 
-# NEU: Hilfsfunktion, um den Prime-Link zu generieren
+# ANGEPASST: Prime Link Funktion
 def get_prime_link(title):
     encoded_title = urllib.parse.quote_plus(title)
-    return f"https://www.amazon.de/s?k={encoded_title}&i=instant-video"
+    # Nutzt ab jetzt die reine Video-Domain, um die Einkaufs-App auf dem Handy zu umgehen!
+    return f"https://www.primevideo.com/search/?phrase={encoded_title}"
 
 # --- BENUTZEROBERFLÄCHE ---
 st.set_page_config(page_title="Zufallsfilm", page_icon="🍿")
@@ -216,7 +217,6 @@ with tab_search:
                 poster_url = f"https://image.tmdb.org/t/p/w500{movie['poster_path']}"
                 st.image(poster_url, width=250)
             
-            # NEU: Der Prime-Link
             prime_link = get_prime_link(movie.get('title', ''))
             st.markdown(f"### [▶️ In der Prime-App suchen]({prime_link})")
             
@@ -251,7 +251,6 @@ with tab_direct:
                         st.subheader(found_movie.get('title', 'Unbekannter Titel'))
                         if on_prime:
                             st.success("✅ Juhu! Dieser Film ist aktuell im Prime-Abo enthalten!")
-                            # NEU: Der Prime-Link
                             prime_link = get_prime_link(found_movie.get('title', ''))
                             st.markdown(f"**[▶️ Direkt in der Prime-App suchen]({prime_link})**")
                         else:
@@ -287,7 +286,6 @@ with tab_catalog:
                             st.image(f"https://image.tmdb.org/t/p/w300{cm['poster_path']}", use_container_width=True)
                         st.write(f"**{cm.get('title')}**")
                         
-                        # NEU: Der Prime-Link für den Katalog
                         prime_link = get_prime_link(cm.get('title', ''))
                         st.markdown(f"**[▶️ Bei Prime suchen]({prime_link})**")
                         
