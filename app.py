@@ -7,7 +7,6 @@ TMDB_API_KEY = "b2ab8673d812267dfbced837fe6811f9"
 JSONBIN_BIN_ID = "6a098848c0954111d836f3ca"
 JSONBIN_API_KEY = "$2a$10$L8rsFKwP2zPMnaYLuK2m7e10y8aOK4STql6Ml9oUFfscLKdLh.giK"
 
-# Genre-Dictionary (TMDB IDs)
 GENRES = {
     "Egal / Alles": "", "Action": "28", "Abenteuer": "12", "Animation": "16",
     "Komödie": "35", "Krimi": "80", "Dokumentation": "99", "Drama": "18",
@@ -48,7 +47,8 @@ def remove_from_blacklist(movie_id):
         update_blacklist_online(blacklist)
 
 # --- TMDB ABFRAGEN ---
-def fetch_movies(genre_id, min_rating, min_year):
+# NEU: Der Parameter exclude_genre_ids wurde hinzugefügt
+def fetch_movies(genre_id, min_rating, min_year, exclude_genre_ids=""):
     url = "https://api.themoviedb.org/3/discover/movie"
     params = {
         "api_key": TMDB_API_KEY,
@@ -62,13 +62,16 @@ def fetch_movies(genre_id, min_rating, min_year):
     }
     if genre_id:
         params["with_genres"] = genre_id
+    
+    # NEU: Wenn Genres ausgeschlossen werden sollen, fügen wir sie der Anfrage hinzu
+    if exclude_genre_ids:
+        params["without_genres"] = exclude_genre_ids
         
     response = requests.get(url, params=params)
     if response.status_code == 200:
         return response.json().get("results", [])
     return []
 
-# HIER WAR DER FEHLER: Diese Funktion hatte im Code vermutlich gefehlt!
 def get_movie_details(movie_id):
     url = f"https://api.themoviedb.org/3/movie/{movie_id}"
     params = {"api_key": TMDB_API_KEY, "language": "de-DE"}
@@ -92,18 +95,31 @@ with tab_search:
 
     with col_settings:
         st.subheader("Eure Filter")
-        selected_genre_name = st.selectbox("Kategorie:", list(GENRES.keys()))
+        selected_genre_name = st.selectbox("Gesuchte Kategorie:", list(GENRES.keys()))
         selected_genre_id = GENRES[selected_genre_name]
+        
+        # NEU: Mehrfachauswahl für Genres, die ihr NICHT wollt
+        # Wir filtern "Egal / Alles" aus der Liste heraus, weil das hier keinen Sinn ergibt
+        exclude_genre_names = st.multiselect(
+            "Diese Kategorien ausschließen:", 
+            [g for g in GENRES.keys() if g != "Egal / Alles"]
+        )
+        # Verwandelt die ausgewählten Namen in eine Liste von IDs, getrennt durch Kommas
+        exclude_genre_ids = ",".join([GENRES[name] for name in exclude_genre_names])
+        
+        st.divider()
         
         min_rating = st.slider("Mindestbewertung (1-10):", min_value=1.0, max_value=9.0, value=6.0, step=0.5)
         min_year = st.number_input("Erscheinungsjahr ab:", min_value=1950, max_value=2026, value=2010, step=1)
         
+        st.divider()
         search_button = st.button("🎲 Zufallsfilm finden", use_container_width=True)
 
     with col_result:
         if search_button:
             with st.spinner('Suche im Prime-Katalog...'):
-                movies = fetch_movies(selected_genre_id, min_rating, min_year)
+                # NEU: Wir übergeben die auszuschließenden Genres an die Suchfunktion
+                movies = fetch_movies(selected_genre_id, min_rating, min_year, exclude_genre_ids)
                 blacklist = load_blacklist()
                 
                 available_movies = [m for m in movies if str(m['id']) not in blacklist]
@@ -116,7 +132,6 @@ with tab_search:
         if 'current_movie' in st.session_state:
             movie = st.session_state['current_movie']
             
-            # --- GENRE ABFRAGE ---
             full_details = get_movie_details(movie['id'])
             genre_text = "Keine Angaben"
             if full_details and 'genres' in full_details:
